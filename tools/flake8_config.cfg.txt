@@ -1,0 +1,32 @@
+# tools/flake8_config.cfg
+# Конфигурация flake8 для проекта PetStore API
+
+[flake8]
+# Максимальная длина строки
+max-line-length = 120
+
+# Игнорируем:
+# W291, W293 - пробелы в docstrings (ложные срабатывания с кириллицей)
+# D100-D107 - missing docstring (не требуем от студентов на старте)
+# E501 - line too long (уже есть max-line-length)
+ignore = E203,W503,W291,W293,D100,D101,D102,D103,D104,D105,D106,D107
+
+# Исключённые папки и файлы
+exclude = 
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    output/,
+    tools/output/,
+    .github/,
+    *.md,
+    *.txt,
+    logs/,
+    allure-results/
+
+# Формат вывода
+show-source = true
+statistics = true
+count = true
+format = %(path)s:%(row)d:%(col)d: %(code)s %(text)s
