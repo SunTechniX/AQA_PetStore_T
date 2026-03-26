@@ -1,0 +1,265 @@
+# .github/workflows/classroom.yml
+# GitHub Classroom Autograder для PetStore API — С FLAKE8
+
+name: 🎓 PetStore API - Autograder
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+  PYTHON_VERSION: '3.12'
+
+jobs:
+  # ─────────────────────────────────────────────────────────────
+  # JOB 1: Структура проекта (10 баллов)
+  # ─────────────────────────────────────────────────────────────
+  check-structure:
+    name: "📁 Структура (10 баллов)"
+    runs-on: ubuntu-22.04
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+    outputs:
+      score: ${{ steps.check.outputs.score }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Проверка
+        id: check
+        run: |
+          mkdir -p tools/output
+          python tools/check_structure.py > tools/output/structure_result.txt 2>&1
+          if grep -q "PASS" tools/output/structure_result.txt; then
+            echo "score=10" >> $GITHUB_OUTPUT
+            echo "10" > tools/output/structure_score.txt
+          else
+            echo "score=0" >> $GITHUB_OUTPUT
+            echo "0" > tools/output/structure_score.txt
+          fi
+      - name: Summary
+        run: python tools/write_summary_structure.py >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
+
+  # ─────────────────────────────────────────────────────────────
+  # JOB 2: Линтинг flake8 (15 баллов) ← НОВЫЙ!
+  # ─────────────────────────────────────────────────────────────
+  lint-code:
+    name: "🧹 Линтинг flake8 (15 баллов)"
+    runs-on: ubuntu-22.04
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+    needs: check-structure
+    continue-on-error: true
+    outputs:
+      score: ${{ steps.lint.outputs.score }}
+      error_count: ${{ steps.lint.outputs.error_count }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install flake8
+        run: pip install flake8
+      - name: Запуск flake8
+        id: lint
+        run: |
+          mkdir -p tools/output
+          
+          # Запускаем flake8 с конфигом
+          python -m flake8 . \
+            --config=tools/flake8_config.cfg \
+            --output-file=tools/output/flake8_report.txt \
+            --show-source \
+            --statistics 2>&1 || true
+          
+          # Считаем ошибки (исключаем пустые строки)
+          error_count=$(grep -c ":" tools/output/flake8_report.txt 2>/dev/null || echo "0")
+          
+          # 15 баллов минус 1 за ошибку, минимум 0
+          score=$((15 - error_count))
+          [ $score -lt 0 ] && score=0
+          
+          echo "score=$score" >> $GITHUB_OUTPUT
+          echo "error_count=$error_count" >> $GITHUB_OUTPUT
+          echo "$score" > tools/output/lint_score.txt
+          echo "$error_count" > tools/output/lint_error_count.txt
+      - name: Вывод в Summary
+        run: |
+          python tools/write_summary_lint.py >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
+
+  # ─────────────────────────────────────────────────────────────
+  # JOB 3: Тесты Pet API (30 баллов)
+  # ─────────────────────────────────────────────────────────────
+  test-pet:
+    name: "🐾 Pet API (30 баллов)"
+    runs-on: ubuntu-22.04
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+    needs: check-structure
+    continue-on-error: true
+    outputs:
+      score: ${{ steps.test.outputs.score }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-allure jsonschema
+      - name: Запуск тестов
+        id: test
+        run: |
+          mkdir -p tools/output logs allure-results
+          pytest tests/test_pet.py -v --tb=short --timeout=30 \
+            --alluredir=allure-results \
+            --json-report \
+            --json-report-file=tools/output/pet_results.json \
+            2>&1 | tee tools/output/pet_output.txt || true
+          
+          passed=$(python -c "import json; print(json.load(open('tools/output/pet_results.json')).get('summary',{}).get('passed',0))" 2>/dev/null) || passed=0
+          score=$((passed * 7))
+          [ $score -gt 30 ] && score=30
+          echo "score=$score" >> $GITHUB_OUTPUT
+          echo "$score" > tools/output/pet_score.txt
+      - name: Summary
+        run: |
+          echo "## 🐾 Pet API Tests" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          score=${{ steps.test.outputs.score }}
+          echo "**Баллы:** \`$score / 30\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+  # ─────────────────────────────────────────────────────────────
+  # JOB 4: E2E тесты (30 баллов)
+  # ─────────────────────────────────────────────────────────────
+  test-e2e:
+    name: "🔄 E2E Tests (30 баллов)"
+    runs-on: ubuntu-22.04
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+    needs: [check-structure, test-pet]
+    continue-on-error: true
+    outputs:
+      score: ${{ steps.test.outputs.score }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-allure jsonschema
+      - name: Запуск E2E тестов
+        id: test
+        run: |
+          mkdir -p tools/output logs allure-results
+          pytest tests/test_e2e.py -v --tb=short --timeout=60 \
+            --alluredir=allure-results \
+            --json-report \
+            --json-report-file=tools/output/e2e_results.json \
+            2>&1 | tee tools/output/e2e_output.txt || true
+          
+          if grep -q "1 passed" tools/output/e2e_output.txt 2>/dev/null; then
+            score=30
+          else
+            score=0
+          fi
+          echo "score=$score" >> $GITHUB_OUTPUT
+          echo "$score" > tools/output/e2e_score.txt
+      - name: Summary
+        run: |
+          echo "## 🔄 E2E Tests" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          score=${{ steps.test.outputs.score }}
+          echo "**Баллы:** \`$score / 30\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+  # ─────────────────────────────────────────────────────────────
+  # JOB 5: Валидация схем (20 баллов)
+  # ─────────────────────────────────────────────────────────────
+  test-validation:
+    name: "✅ Validation (20 баллов)"
+    runs-on: ubuntu-22.04
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+    needs: check-structure
+    continue-on-error: true
+    outputs:
+      score: ${{ steps.test.outputs.score }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-allure jsonschema
+      - name: Запуск тестов валидации
+        id: test
+        run: |
+          mkdir -p tools/output logs allure-results
+          pytest tests/test_validation.py -v --tb=short --timeout=30 \
+            --alluredir=allure-results \
+            --json-report \
+            --json-report-file=tools/output/validation_results.json \
+            2>&1 | tee tools/output/validation_output.txt || true
+          
+          passed=$(python -c "import json; print(json.load(open('tools/output/validation_results.json')).get('summary',{}).get('passed',0))" 2>/dev/null) || passed=0
+          score=$((passed * 10))
+          [ $score -gt 20 ] && score=20
+          echo "score=$score" >> $GITHUB_OUTPUT
+          echo "$score" > tools/output/validation_score.txt
+      - name: Summary
+        run: |
+          echo "## ✅ Validation Tests" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          score=${{ steps.test.outputs.score }}
+          echo "**Баллы:** \`$score / 20\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+  # ─────────────────────────────────────────────────────────────
+  # JOB 6: Итоговый отчёт
+  # ─────────────────────────────────────────────────────────────
+  final-summary:
+    name: "📊 Итоговый отчёт"
+    runs-on: ubuntu-22.04
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+    needs: [check-structure, lint-code, test-pet, test-e2e, test-validation]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Генерация
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          python tools/generate_final_summary.py >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "**ИТОГО: Ошибка**" >> $GITHUB_STEP_SUMMARY
+      - name: Upload артефактов
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: petstore-artifacts-${{ github.run_number }}
+          path: |
+            tools/output/
+            allure-results/
+            logs/
+          retention-days: 7
