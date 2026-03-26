@@ -1,7 +1,7 @@
 # .github/workflows/classroom.yml
-# GitHub Classroom Autograder для PetStore API — ПОЛНАЯ ВЕРСИЯ
+# GitHub Classroom Autograder для Restful-Booker API
 
-name: 🎓 PetStore API - Autograder
+name: 🎓 Restful-Booker API - Autograder
 
 on:
   push:
@@ -43,8 +43,6 @@ jobs:
             echo "score=0" >> $GITHUB_OUTPUT
             echo "0" > tools/output/structure_score.txt
           fi
-      - name: Summary
-        run: python tools/write_summary_structure.py >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
 
   # ─────────────────────────────────────────────────────────────
   # JOB 2: Линтинг flake8 (15 баллов)
@@ -79,14 +77,12 @@ jobs:
           echo "error_count=$error_count" >> $GITHUB_OUTPUT
           echo "$score" > tools/output/lint_score.txt
           echo "$error_count" > tools/output/lint_error_count.txt
-      - name: Вывод в Summary
-        run: python tools/write_summary_lint.py >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
 
   # ─────────────────────────────────────────────────────────────
-  # JOB 3: Тесты User API (15 баллов)
+  # JOB 3: Тесты авторизации (15 баллов)
   # ─────────────────────────────────────────────────────────────
-  test-user:
-    name: "👤 User API (15 баллов)"
+  test-auth:
+    name: "🔐 Auth API (15 баллов)"
     runs-on: ubuntu-22.04
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
@@ -108,37 +104,23 @@ jobs:
         id: test
         run: |
           mkdir -p tools/output logs allure-results
-          pytest tests/test_user.py -v --tb=short --timeout=60 --json-report --json-report-file=tools/output/user_results.json 2>&1 | tee tools/output/user_output.txt || true
-          
-          passed=$(python -c "import json; print(json.load(open('tools/output/user_results.json')).get('summary',{}).get('passed',0))" 2>/dev/null) || passed=0
-          total=$(python -c "import json; print(json.load(open('tools/output/user_results.json')).get('summary',{}).get('total',0))" 2>/dev/null) || total=0
-          
-          # 15 баллов за 10 тестов: 1.5 балла за тест
-          score=$(python -c "print(int(min(15, $passed * 1.5)))")
-          
+          pytest tests/test_auth.py -v --tb=short --timeout=60 --json-report --json-report-file=tools/output/auth_results.json 2>&1 | tee tools/output/auth_output.txt || true
+          passed=$(python -c "import json; print(json.load(open('tools/output/auth_results.json')).get('summary',{}).get('passed',0))" 2>/dev/null) || passed=0
+          total=$(python -c "import json; print(json.load(open('tools/output/auth_results.json')).get('summary',{}).get('total',0))" 2>/dev/null) || total=0
+          score=$((passed * 2))
+          [ $score -gt 15 ] && score=15
           echo "score=$score" >> $GITHUB_OUTPUT
           echo "passed=$passed" >> $GITHUB_OUTPUT
           echo "total=$total" >> $GITHUB_OUTPUT
-          echo "$score" > tools/output/user_score.txt
-          echo "$passed" > tools/output/user_passed.txt
-          echo "$total" > tools/output/user_total.txt
-      - name: Вывод в Summary
-        run: |
-          passed=${{ steps.test.outputs.passed }}
-          total=${{ steps.test.outputs.total }}
-          score=${{ steps.test.outputs.score }}
-          echo "## 👤 User API Tests" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Пройдено тестов:** \`$passed / $total\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Баллы:** \`$score / 15\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "$score" > tools/output/auth_score.txt
+          echo "$passed" > tools/output/auth_passed.txt
+          echo "$total" > tools/output/auth_total.txt
 
   # ─────────────────────────────────────────────────────────────
-  # JOB 4: Тесты Pet API (20 баллов)
+  # JOB 4: Тесты GET Booking (15 баллов)
   # ─────────────────────────────────────────────────────────────
-  test-pet:
-    name: "🐾 Pet API (20 баллов)"
+  test-get:
+    name: "📋 GET Booking (15 баллов)"
     runs-on: ubuntu-22.04
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
@@ -160,37 +142,21 @@ jobs:
         id: test
         run: |
           mkdir -p tools/output logs allure-results
-          pytest tests/test_pet.py -v --tb=short --timeout=60 --json-report --json-report-file=tools/output/pet_results.json 2>&1 | tee tools/output/pet_output.txt || true
-          
-          passed=$(python -c "import json; print(json.load(open('tools/output/pet_results.json')).get('summary',{}).get('passed',0))" 2>/dev/null) || passed=0
-          total=$(python -c "import json; print(json.load(open('tools/output/pet_results.json')).get('summary',{}).get('total',0))" 2>/dev/null) || total=0
-          
-          # 20 баллов за 10 тестов: 2 балла за тест
-          score=$(python -c "print(int(min(20, $passed * 2)))")
-          
+          pytest tests/test_get_booking.py -v --tb=short --timeout=60 --json-report --json-report-file=tools/output/get_results.json 2>&1 | tee tools/output/get_output.txt || true
+          passed=$(python -c "import json; print(json.load(open('tools/output/get_results.json')).get('summary',{}).get('passed',0))" 2>/dev/null) || passed=0
+          total=$(python -c "import json; print(json.load(open('tools/output/get_results.json')).get('summary',{}).get('total',0))" 2>/dev/null) || total=0
+          score=$((passed * 2))
+          [ $score -gt 15 ] && score=15
           echo "score=$score" >> $GITHUB_OUTPUT
           echo "passed=$passed" >> $GITHUB_OUTPUT
           echo "total=$total" >> $GITHUB_OUTPUT
-          echo "$score" > tools/output/pet_score.txt
-          echo "$passed" > tools/output/pet_passed.txt
-          echo "$total" > tools/output/pet_total.txt
-      - name: Вывод в Summary
-        run: |
-          passed=${{ steps.test.outputs.passed }}
-          total=${{ steps.test.outputs.total }}
-          score=${{ steps.test.outputs.score }}
-          echo "## 🐾 Pet API Tests" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Пройдено тестов:** \`$passed / $total\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Баллы:** \`$score / 20\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "$score" > tools/output/get_score.txt
 
   # ─────────────────────────────────────────────────────────────
-  # JOB 5: Тесты Store API (15 баллов)
+  # JOB 5: Тесты CREATE Booking (15 баллов)
   # ─────────────────────────────────────────────────────────────
-  test-store:
-    name: "🛒 Store API (15 баллов)"
+  test-create:
+    name: "➕ CREATE Booking (15 баллов)"
     runs-on: ubuntu-22.04
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
@@ -212,37 +178,93 @@ jobs:
         id: test
         run: |
           mkdir -p tools/output logs allure-results
-          pytest tests/test_store.py -v --tb=short --timeout=60 --json-report --json-report-file=tools/output/store_results.json 2>&1 | tee tools/output/store_output.txt || true
-          
-          passed=$(python -c "import json; print(json.load(open('tools/output/store_results.json')).get('summary',{}).get('passed',0))" 2>/dev/null) || passed=0
-          total=$(python -c "import json; print(json.load(open('tools/output/store_results.json')).get('summary',{}).get('total',0))" 2>/dev/null) || total=0
-          
-          # 15 баллов за 7 тестов: ~2 балла за тест
-          score=$(python -c "print(int(min(15, $passed * 2)))")
-          
+          pytest tests/test_create_booking.py -v --tb=short --timeout=60 --json-report --json-report-file=tools/output/create_results.json 2>&1 | tee tools/output/create_output.txt || true
+          passed=$(python -c "import json; print(json.load(open('tools/output/create_results.json')).get('summary',{}).get('passed',0))" 2>/dev/null) || passed=0
+          total=$(python -c "import json; print(json.load(open('tools/output/create_results.json')).get('summary',{}).get('total',0))" 2>/dev/null) || total=0
+          score=$((passed * 2))
+          [ $score -gt 15 ] && score=15
           echo "score=$score" >> $GITHUB_OUTPUT
           echo "passed=$passed" >> $GITHUB_OUTPUT
           echo "total=$total" >> $GITHUB_OUTPUT
-          echo "$score" > tools/output/store_score.txt
-          echo "$passed" > tools/output/store_passed.txt
-          echo "$total" > tools/output/store_total.txt
-      - name: Вывод в Summary
-        run: |
-          passed=${{ steps.test.outputs.passed }}
-          total=${{ steps.test.outputs.total }}
-          score=${{ steps.test.outputs.score }}
-          echo "## 🛒 Store API Tests" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Пройдено тестов:** \`$passed / $total\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Баллы:** \`$score / 15\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "$score" > tools/output/create_score.txt
 
   # ─────────────────────────────────────────────────────────────
-  # JOB 6: Тесты валидации (15 баллов)
+  # JOB 6: Тесты UPDATE Booking (15 баллов)
+  # ─────────────────────────────────────────────────────────────
+  test-update:
+    name: "✏️ UPDATE Booking (15 баллов)"
+    runs-on: ubuntu-22.04
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+    needs: check-structure
+    continue-on-error: true
+    outputs:
+      score: ${{ steps.test.outputs.score }}
+      passed: ${{ steps.test.outputs.passed }}
+      total: ${{ steps.test.outputs.total }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Запуск тестов
+        id: test
+        run: |
+          mkdir -p tools/output logs allure-results
+          pytest tests/test_update_booking.py -v --tb=short --timeout=60 --json-report --json-report-file=tools/output/update_results.json 2>&1 | tee tools/output/update_output.txt || true
+          passed=$(python -c "import json; print(json.load(open('tools/output/update_results.json')).get('summary',{}).get('passed',0))" 2>/dev/null) || passed=0
+          total=$(python -c "import json; print(json.load(open('tools/output/update_results.json')).get('summary',{}).get('total',0))" 2>/dev/null) || total=0
+          score=$((passed * 2))
+          [ $score -gt 15 ] && score=15
+          echo "score=$score" >> $GITHUB_OUTPUT
+          echo "passed=$passed" >> $GITHUB_OUTPUT
+          echo "total=$total" >> $GITHUB_OUTPUT
+          echo "$score" > tools/output/update_score.txt
+
+  # ─────────────────────────────────────────────────────────────
+  # JOB 7: Тесты DELETE Booking (10 баллов)
+  # ─────────────────────────────────────────────────────────────
+  test-delete:
+    name: "🗑️ DELETE Booking (10 баллов)"
+    runs-on: ubuntu-22.04
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+    needs: check-structure
+    continue-on-error: true
+    outputs:
+      score: ${{ steps.test.outputs.score }}
+      passed: ${{ steps.test.outputs.passed }}
+      total: ${{ steps.test.outputs.total }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Запуск тестов
+        id: test
+        run: |
+          mkdir -p tools/output logs allure-results
+          pytest tests/test_delete_booking.py -v --tb=short --timeout=60 --json-report --json-report-file=tools/output/delete_results.json 2>&1 | tee tools/output/delete_output.txt || true
+          passed=$(python -c "import json; print(json.load(open('tools/output/delete_results.json')).get('summary',{}).get('passed',0))" 2>/dev/null) || passed=0
+          total=$(python -c "import json; print(json.load(open('tools/output/delete_results.json')).get('summary',{}).get('total',0))" 2>/dev/null) || total=0
+          score=$((passed * 2))
+          [ $score -gt 10 ] && score=10
+          echo "score=$score" >> $GITHUB_OUTPUT
+          echo "passed=$passed" >> $GITHUB_OUTPUT
+          echo "total=$total" >> $GITHUB_OUTPUT
+          echo "$score" > tools/output/delete_score.txt
+
+  # ─────────────────────────────────────────────────────────────
+  # JOB 8: Тесты валидации (10 баллов)
   # ─────────────────────────────────────────────────────────────
   test-validation:
-    name: "✅ Validation (15 баллов)"
+    name: "✅ Validation (10 баллов)"
     runs-on: ubuntu-22.04
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
@@ -265,40 +287,24 @@ jobs:
         run: |
           mkdir -p tools/output logs allure-results
           pytest tests/test_validation.py -v --tb=short --timeout=60 --json-report --json-report-file=tools/output/validation_results.json 2>&1 | tee tools/output/validation_output.txt || true
-          
           passed=$(python -c "import json; print(json.load(open('tools/output/validation_results.json')).get('summary',{}).get('passed',0))" 2>/dev/null) || passed=0
           total=$(python -c "import json; print(json.load(open('tools/output/validation_results.json')).get('summary',{}).get('total',0))" 2>/dev/null) || total=0
-          
-          # 15 баллов за 6 тестов: 2.5 балла за тест
-          score=$(python -c "print(int(min(15, $passed * 2.5)))")
-          
+          score=$((passed * 2))
+          [ $score -gt 10 ] && score=10
           echo "score=$score" >> $GITHUB_OUTPUT
           echo "passed=$passed" >> $GITHUB_OUTPUT
           echo "total=$total" >> $GITHUB_OUTPUT
           echo "$score" > tools/output/validation_score.txt
-          echo "$passed" > tools/output/validation_passed.txt
-          echo "$total" > tools/output/validation_total.txt
-      - name: Вывод в Summary
-        run: |
-          passed=${{ steps.test.outputs.passed }}
-          total=${{ steps.test.outputs.total }}
-          score=${{ steps.test.outputs.score }}
-          echo "## ✅ Validation Tests" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Пройдено тестов:** \`$passed / $total\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Баллы:** \`$score / 15\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
 
   # ─────────────────────────────────────────────────────────────
-  # JOB 7: E2E тесты (25 баллов)
+  # JOB 9: E2E тесты (25 баллов)
   # ─────────────────────────────────────────────────────────────
   test-e2e:
     name: "🔄 E2E Tests (25 баллов)"
     runs-on: ubuntu-22.04
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
-    needs: [check-structure, test-user, test-pet, test-store]
+    needs: [check-structure, test-auth, test-create]
     continue-on-error: true
     outputs:
       score: ${{ steps.test.outputs.score }}
@@ -317,140 +323,58 @@ jobs:
         run: |
           mkdir -p tools/output logs allure-results
           pytest tests/test_e2e.py -v --tb=short --timeout=120 --json-report --json-report-file=tools/output/e2e_results.json 2>&1 | tee tools/output/e2e_output.txt || true
-          
           passed=$(python -c "import json; print(json.load(open('tools/output/e2e_results.json')).get('summary',{}).get('passed',0))" 2>/dev/null) || passed=0
           total=$(python -c "import json; print(json.load(open('tools/output/e2e_results.json')).get('summary',{}).get('total',0))" 2>/dev/null) || total=0
-          
-          # 25 баллов за 5 тестов: 5 баллов за тест
-          score=$(python -c "print(int(min(25, $passed * 5)))")
-          
+          score=$((passed * 25))
+          [ $score -gt 25 ] && score=25
           echo "score=$score" >> $GITHUB_OUTPUT
           echo "passed=$passed" >> $GITHUB_OUTPUT
           echo "total=$total" >> $GITHUB_OUTPUT
           echo "$score" > tools/output/e2e_score.txt
-          echo "$passed" > tools/output/e2e_passed.txt
-          echo "$total" > tools/output/e2e_total.txt
-      - name: Вывод в Summary
-        run: |
-          passed=${{ steps.test.outputs.passed }}
-          total=${{ steps.test.outputs.total }}
-          score=${{ steps.test.outputs.score }}
-          echo "## 🔄 E2E Tests" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Пройдено тестов:** \`$passed / $total\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Баллы:** \`$score / 25\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
 
   # ─────────────────────────────────────────────────────────────
-  # JOB 8: Итоговый отчёт (ПРОСТОЙ, БЕЗ HEREDOC)
+  # JOB 10: Итоговый отчёт
   # ─────────────────────────────────────────────────────────────
   final-summary:
     name: "📊 Итоговый отчёт"
     runs-on: ubuntu-22.04
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
-    needs: [check-structure, lint-code, test-user, test-pet, test-store, test-validation, test-e2e]
+    needs: [check-structure, lint-code, test-auth, test-get, test-create, test-update, test-delete, test-validation, test-e2e]
     if: always()
     steps:
       - uses: actions/checkout@v4
-      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
       - name: Генерация итоговой таблицы
         run: |
-          # Считываем выходы из всех job
-          structure_score="${{ needs.check-structure.outputs.score || 0 }}"
-          lint_score="${{ needs.lint-code.outputs.score || 0 }}"
-          lint_errors="${{ needs.lint-code.outputs.error_count || 0 }}"
-          user_score="${{ needs.test-user.outputs.score || 0 }}"
-          user_passed="${{ needs.test-user.outputs.passed || 0 }}"
-          user_total="${{ needs.test-user.outputs.total || 0 }}"
-          pet_score="${{ needs.test-pet.outputs.score || 0 }}"
-          pet_passed="${{ needs.test-pet.outputs.passed || 0 }}"
-          pet_total="${{ needs.test-pet.outputs.total || 0 }}"
-          store_score="${{ needs.test-store.outputs.score || 0 }}"
-          store_passed="${{ needs.test-store.outputs.passed || 0 }}"
-          store_total="${{ needs.test-store.outputs.total || 0 }}"
-          validation_score="${{ needs.test-validation.outputs.score || 0 }}"
-          validation_passed="${{ needs.test-validation.outputs.passed || 0 }}"
-          validation_total="${{ needs.test-validation.outputs.total || 0 }}"
-          e2e_score="${{ needs.test-e2e.outputs.score || 0 }}"
-          e2e_passed="${{ needs.test-e2e.outputs.passed || 0 }}"
-          e2e_total="${{ needs.test-e2e.outputs.total || 0 }}"
-          
-          # Итоговые расчёты
-          total_tests_passed=$((user_passed + pet_passed + store_passed + validation_passed + e2e_passed))
-          total_tests=$((user_total + pet_total + store_total + validation_total + e2e_total))
-          total_score=$((structure_score + lint_score + user_score + pet_score + store_score + validation_score + e2e_score))
-          max_score=100
-          percentage=$((total_score * 100 / max_score))
-          
-          # Оценка
-          if [ "$total_score" -ge 90 ]; then grade="🟢 Отлично"; status="Зачтено"
-          elif [ "$total_score" -ge 70 ]; then grade="🟡 Хорошо"; status="Зачтено"
-          elif [ "$total_score" -ge 50 ]; then grade="🟠 Удовлетворительно"; status="Зачтено"
-          else grade="🔴 Требуется доработка"; status="Не зачтено"; fi
-          
-          # Прогресс-бар
-          filled=$((percentage / 5))
-          empty=$((20 - filled))
-          progress=""
-          i=0
-          while [ $i -lt $filled ]; do progress="${progress}🟩"; i=$((i+1)); done
-          i=0
-          while [ $i -lt $empty ]; do progress="${progress}⬜"; i=$((i+1)); done
-          
-          # Статусы
-          s1=$([ "$structure_score" = "10" ] && echo "✅" || echo "❌")
-          s2=$([ "$lint_score" -ge 12 ] && echo "✅" || echo "⚠️")
-          s3=$([ "$user_passed" -ge 8 ] && echo "✅" || echo "⚠️")
-          s4=$([ "$pet_passed" -ge 8 ] && echo "✅" || echo "⚠️")
-          s5=$([ "$store_passed" -ge 5 ] && echo "✅" || echo "⚠️")
-          s6=$([ "$validation_passed" -ge 3 ] && echo "✅" || echo "⚠️")
-          s7=$([ "$e2e_passed" -ge 1 ] && echo "✅" || echo "❌")
-          
-          # === ВЫВОД: ПРОСТЫЕ ECHO, БЕЗ HEREDOC ===
-          
           echo "# 🏆 ИТОГОВАЯ ОЦЕНКА" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Параметр | Значение |" >> $GITHUB_STEP_SUMMARY
           echo "|----------|----------|" >> $GITHUB_STEP_SUMMARY
-          echo "| 💯 Баллы | **${total_score} / ${max_score}** |" >> $GITHUB_STEP_SUMMARY
-          echo "| 📈 Процент | **${percentage}%** |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🎓 Оценка | **${grade}** |" >> $GITHUB_STEP_SUMMARY
-          echo "| ✅ Статус | **${status}** |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🧪 Тестов пройдено | **${total_tests_passed} / ${total_tests}** |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Прогресс" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "\`[${progress}]\` ${percentage}%" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "| 💯 Баллы | **${{ needs.check-structure.outputs.score || 0 }} + ${{ needs.lint-code.outputs.score || 0 }} + ${{ needs.test-auth.outputs.score || 0 }} + ${{ needs.test-get.outputs.score || 0 }} + ${{ needs.test-create.outputs.score || 0 }} + ${{ needs.test-update.outputs.score || 0 }} + ${{ needs.test-delete.outputs.score || 0 }} + ${{ needs.test-validation.outputs.score || 0 }} + ${{ needs.test-e2e.outputs.score || 0 }}** |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🧪 Тестов пройдено | **${{ needs.test-auth.outputs.passed || 0 }} + ${{ needs.test-get.outputs.passed || 0 }} + ${{ needs.test-create.outputs.passed || 0 }} + ${{ needs.test-update.outputs.passed || 0 }} + ${{ needs.test-delete.outputs.passed || 0 }} + ${{ needs.test-validation.outputs.passed || 0 }} + ${{ needs.test-e2e.outputs.passed || 0 }}** |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## 📋 Детализация по категориям" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Категория | Тесты | Баллы | Статус |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----------|-------|-------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| 📁 Структура | — | ${structure_score} / 10 | ${s1} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🧹 Линтинг | ${lint_errors} ошибок | ${lint_score} / 15 | ${s2} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 👤 User API | ${user_passed} / ${user_total} | ${user_score} / 15 | ${s3} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🐾 Pet API | ${pet_passed} / ${pet_total} | ${pet_score} / 20 | ${s4} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🛒 Store API | ${store_passed} / ${store_total} | ${store_score} / 15 | ${s5} |" >> $GITHUB_STEP_SUMMARY
-          echo "| ✅ Validation | ${validation_passed} / ${validation_total} | ${validation_score} / 15 | ${s6} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🔄 E2E Tests | ${e2e_passed} / ${e2e_total} | ${e2e_score} / 25 | ${s7} |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "---" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**💪 ИТОГО: ${total_score} баллов из ${max_score}**" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**🧪 Тестов: ${total_tests_passed} / ${total_tests}**" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "*GitHub Classroom Autograder • 2026.03*" >> $GITHUB_STEP_SUMMARY
-      
+          echo "| Категория | Тесты | Баллы |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 📁 Структура | — | ${{ needs.check-structure.outputs.score || 0 }} / 10 |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🧹 Линтинг | ${{ needs.lint-code.outputs.error_count || 0 }} ошибок | ${{ needs.lint-code.outputs.score || 0 }} / 15 |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔐 Auth API | ${{ needs.test-auth.outputs.passed || 0 }} / ${{ needs.test-auth.outputs.total || 0 }} | ${{ needs.test-auth.outputs.score || 0 }} / 15 |" >> $GITHUB_STEP_SUMMARY
+          echo "| 📋 GET Booking | ${{ needs.test-get.outputs.passed || 0 }} / ${{ needs.test-get.outputs.total || 0 }} | ${{ needs.test-get.outputs.score || 0 }} / 15 |" >> $GITHUB_STEP_SUMMARY
+          echo "| ➕ CREATE Booking | ${{ needs.test-create.outputs.passed || 0 }} / ${{ needs.test-create.outputs.total || 0 }} | ${{ needs.test-create.outputs.score || 0 }} / 15 |" >> $GITHUB_STEP_SUMMARY
+          echo "| ✏️ UPDATE Booking | ${{ needs.test-update.outputs.passed || 0 }} / ${{ needs.test-update.outputs.total || 0 }} | ${{ needs.test-update.outputs.score || 0 }} / 15 |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🗑️ DELETE Booking | ${{ needs.test-delete.outputs.passed || 0 }} / ${{ needs.test-delete.outputs.total || 0 }} | ${{ needs.test-delete.outputs.score || 0 }} / 10 |" >> $GITHUB_STEP_SUMMARY
+          echo "| ✅ Validation | ${{ needs.test-validation.outputs.passed || 0 }} / ${{ needs.test-validation.outputs.total || 0 }} | ${{ needs.test-validation.outputs.score || 0 }} / 10 |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔄 E2E Tests | ${{ needs.test-e2e.outputs.passed || 0 }} / ${{ needs.test-e2e.outputs.total || 0 }} | ${{ needs.test-e2e.outputs.score || 0 }} / 25 |" >> $GITHUB_STEP_SUMMARY
       - name: Upload артефактов
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: petstore-artifacts-${{ github.run_number }}
+          name: booker-artifacts-${{ github.run_number }}
           path: |
             tools/output/
             allure-results/
